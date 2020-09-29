@@ -20,8 +20,21 @@ def make_power_plant_net():
     Use the following as the name attribute: "alarm","faulty alarm", "gauge","faulty gauge", "temperature". (for the tests to work.)
     """
     BayesNet = BayesianModel()
-    # TODO: finish this function    
-    raise NotImplementedError
+
+    # Add nodes to graph
+    BayesNet.add_node("alarm")
+    BayesNet.add_node("faulty alarm")
+    BayesNet.add_node("gauge")
+    BayesNet.add_node("faulty gauge")
+    BayesNet.add_node("temperature")
+
+    # Connect nodes
+    BayesNet.add_edge("temperature", "gauge")
+    BayesNet.add_edge("temperature", "faulty gauge")
+    BayesNet.add_edge("faulty gauge", "gauge")
+    BayesNet.add_edge("gauge", "alarm")
+    BayesNet.add_edge("faulty alarm", "alarm")
+
     return BayesNet
 
 
