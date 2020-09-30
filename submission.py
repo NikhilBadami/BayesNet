@@ -56,9 +56,9 @@ def get_alarm_prob(bayes_net):
     probability of the alarm 
     ringing in the 
     power plant system."""
-    # TODO: finish this function
-    raise NotImplementedError
-    return alarm_prob
+    solver = VariableElimination(bayes_net)
+    alarm_prob = solver.query(variables=["alarm"], joint=False)
+    return alarm_prob["alarm"].values[1]
 
 
 def get_gauge_prob(bayes_net):
@@ -66,9 +66,9 @@ def get_gauge_prob(bayes_net):
     probability of the gauge 
     showing hot in the 
     power plant system."""
-    # TODO: finish this function
-    raise NotImplementedError
-    return gauge_prob
+    solver = VariableElimination(bayes_net)
+    gauge_prob = solver.query(variables=["gauge"], joint=False)
+    return gauge_prob["gauge"].values[1]
 
 
 def get_temperature_prob(bayes_net):
@@ -77,9 +77,9 @@ def get_temperature_prob(bayes_net):
     power plant system, given that the
     alarm sounds and neither the gauge
     nor alarm is faulty."""
-    # TODO: finish this function
-    raise NotImplementedError
-    return temp_prob
+    solver = VariableElimination(bayes_net)
+    temperature_prob = solver.query(variables=["temperature"], evidence={"alarm": 1, "faulty alarm": 1, "faulty gauge": 1}, joint=False)
+    return temperature_prob["temperature"].values[1]
 
 
 def get_game_network():
@@ -158,5 +158,4 @@ def sampling_question():
 
 def return_your_name():
     """Return your name from this function"""
-    # TODO: finish this function
-    raise NotImplementedError
+    return "Nikhil Badami"
