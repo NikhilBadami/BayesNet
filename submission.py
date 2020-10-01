@@ -85,9 +85,45 @@ def get_temperature_prob(bayes_net):
 def get_game_network():
     """Create a Bayes Net representation of the game problem.
     Name the nodes as "A","B","C","AvB","BvC" and "CvA".  """
+
+    # Add nodes
     BayesNet = BayesianModel()
-    # TODO: fill this out
-    raise NotImplementedError    
+    BayesNet.add_node("A")
+    BayesNet.add_node("B")
+    BayesNet.add_node("C")
+    BayesNet.add_node("AvB")
+    BayesNet.add_node("BvC")
+    BayesNet.add_node("CvA")
+
+    # Add edges
+    BayesNet.add_edge("A", "AvB")
+    BayesNet.add_edge("A", "CvA")
+    BayesNet.add_edge("B", "AvB")
+    BayesNet.add_edge("B", "BvC")
+    BayesNet.add_edge("C", "BvC")
+    BayesNet.add_edge("C", "CvA")
+
+    # Add probabilities
+    cpd_A = TabularCPD("A", 4, values=[[0.15], [0.45], [0.30], [0.10]])
+    cpd_B = TabularCPD("B", 4, values=[[0.15], [0.45], [0.30], [0.10]])
+    cpd_C = TabularCPD("C", 4, values=[[0.15], [0.45], [0.30], [0.10]])
+    cpd_avb = TabularCPD("AvB", 3, values=[
+        [0.1, 0.2, 0.15, 0.05, 0.6, 0.1, 0.2, 0.15, 0.75, 0.6, 0.1, 0.2, 0.9, 0.75, 0.6, 0.1],
+        [0.1, 0.6, 0.75, 0.9, 0.2, 0.1, 0.6, 0.75, 0.15, 0.2, 0.1, 0.6, 0.05, 0.15, 0.2, 0.1],
+        [0.8, 0.2, 0.1, 0.05, 0.2, 0.8, 0.2, 0.1, 0.1, 0.2, 0.8, 0.2, 0.05, 0.1, 0.2, 0.8]
+    ], evidence=["A", "B"], evidence_card=[4, 4])
+    cpd_bvc = TabularCPD("BvC", 3, values=[
+        [0.1, 0.2, 0.15, 0.05, 0.6, 0.1, 0.2, 0.15, 0.75, 0.6, 0.1, 0.2, 0.9, 0.75, 0.6, 0.1],
+        [0.1, 0.6, 0.75, 0.9, 0.2, 0.1, 0.6, 0.75, 0.15, 0.2, 0.1, 0.6, 0.05, 0.15, 0.2, 0.1],
+        [0.8, 0.2, 0.1, 0.05, 0.2, 0.8, 0.2, 0.1, 0.1, 0.2, 0.8, 0.2, 0.05, 0.1, 0.2, 0.8]
+    ], evidence=["B", "C"], evidence_card=[4, 4])
+    cpd_avc = TabularCPD("CvA", 3, values=[
+        [0.1, 0.2, 0.15, 0.05, 0.6, 0.1, 0.2, 0.15, 0.75, 0.6, 0.1, 0.2, 0.9, 0.75, 0.6, 0.1],
+        [0.1, 0.6, 0.75, 0.9, 0.2, 0.1, 0.6, 0.75, 0.15, 0.2, 0.1, 0.6, 0.05, 0.15, 0.2, 0.1],
+        [0.8, 0.2, 0.1, 0.05, 0.2, 0.8, 0.2, 0.1, 0.1, 0.2, 0.8, 0.2, 0.05, 0.1, 0.2, 0.8]
+    ], evidence=["C", "A"], evidence_card=[4, 4])
+    BayesNet.add_cpds(cpd_A, cpd_B, cpd_C, cpd_avb, cpd_bvc, cpd_avc)
+
     return BayesNet
 
 
