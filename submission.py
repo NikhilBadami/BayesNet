@@ -130,10 +130,9 @@ def get_game_network():
 def calculate_posterior(bayes_net):
     """Calculate the posterior distribution of the BvC match given that A won against B and tied C. 
     Return a list of probabilities corresponding to win, loss and tie likelihood."""
-    posterior = [0,0,0]
-    # TODO: finish this function    
-    raise NotImplementedError
-    return posterior # list 
+    solver = VariableElimination(bayes_net)
+    posterior = solver.query(variables=["BvC"], evidence={"AvB": 0, "CvA": 2}, joint=False)
+    return posterior["BvC"].values # list
 
 
 def Gibbs_sampler(bayes_net, initial_state):
