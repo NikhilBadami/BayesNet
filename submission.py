@@ -9,6 +9,7 @@ import pgmpy
 from pgmpy.models import BayesianModel
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.inference import VariableElimination
+import random
 #You are not allowed to use following set of modules from 'pgmpy' Library.
 #
 # pgmpy.sampling.*
@@ -132,7 +133,7 @@ def calculate_posterior(bayes_net):
     Return a list of probabilities corresponding to win, loss and tie likelihood."""
     solver = VariableElimination(bayes_net)
     posterior = solver.query(variables=["BvC"], evidence={"AvB": 0, "CvA": 2}, joint=False)
-    return posterior["BvC"].values # list
+    return posterior["BvC"].values
 
 
 def Gibbs_sampler(bayes_net, initial_state):
@@ -146,10 +147,138 @@ def Gibbs_sampler(bayes_net, initial_state):
     Returns the new state sampled from the probability distribution as a tuple of length 6.
     Return the sample as a tuple.    
     """
-    sample = tuple(initial_state)    
-    # TODO: finish this function
-    raise NotImplementedError
+    if initial_state is None or len(initial_state) == 0:
+        initial_state = (
+            random.randint(0, 3),
+            random.randint(0, 3),
+            random.randint(0, 3),
+            0,
+            random.randint(0, 2),
+            2
+        )
+        return initial_state
+
+    # pick variable to sample
+    sample_idx = random.randint(0, 5)
+    if sample_idx == 3 or sample_idx == 5:
+        while sample_idx != 3 and sample_idx != 5:
+            sample_idx = random.randint(0, 6)
+
+    # Sample the chosen variable
+    sample = None
+    if sample_idx == 0:
+        sample = __calculate_A_posterior__(bayes_net, initial_state)
+    if sample_idx == 1:
+        sample = __calculate_B_posterior__(bayes_net, initial_state)
+    if sample_idx == 2:
+        sample = __calculate_C_posterior__(bayes_net, initial_state)
+    if sample_idx == 4:
+        sample = __calculate_bvc_posterior__(bayes_net, initial_state)
     return sample
+
+
+def __calculate_bvc_posterior__(bayes_net, initial_state):
+    bvc_probs = bayes_net.get_cpds("BvC").values
+    b_value = initial_state[1]
+    c_value = initial_state[2]
+
+    numerators = []
+    for i in range(3):
+        numerator = bvc_probs[4 * b_value + c_value][i]
+        numerator.append(numerator)
+
+    sums = sum(numerators)
+    max_index = -1
+    max_value = -1
+    for i in range(len(sums)):
+        if sums[i] > max_value:
+            max_value = sums[i]
+            max_index = i
+
+    return initial_state[0], b_value, c_value, 0, max_index, 2
+
+
+def __calculate_A_posterior__(bayes_net, initial_state):
+    # Get relevant values for calculation
+    a_probs = bayes_net.get_cpds("A").values
+    b_value = initial_state[1]
+    c_value = initial_state[2]
+    avb_probs = bayes_net.get_cpds("AvB").values[0]
+    cva_probs = bayes_net.get_cpds("CvA").values[2]
+
+    likelihood_numerator_a = []
+    # Find numerator for posterior calculation
+    for i in range(len(a_probs)):
+        numerator = a_probs[i] * avb_probs[4 * i + b_value] * cva_probs[4 * c_value + i]
+        likelihood_numerator_a.append(numerator)
+
+    # Divide all values by the sum of the list
+    sum_a = sum(likelihood_numerator_a)
+    max_index = -1
+    max_value = -1
+    for i in range(len(likelihood_numerator_a)):
+        likelihood = likelihood_numerator_a[i] / sum_a
+        # Choose index of max value as new A-value
+        if likelihood > max_value:
+            max_value = likelihood
+            max_index = i
+
+    return max_index, b_value, c_value, 0, initial_state[4], 2
+
+
+def __calculate_B_posterior__(bayes_net, initial_state):
+    # Get relevant values for calculation
+    b_probs = bayes_net.get_cpds("B").values
+    a_value = initial_state[0]
+    c_value = initial_state[2]
+    avb_probs = bayes_net.get_cpds("AvB").values[0]
+    bvc_probs = bayes_net.get_cpds("BvC").values[initial_state[4]]
+
+    likelihood_numerator_b = []
+    # Find numerator for posterior calculation
+    for i in range(len(b_probs)):
+        numerator = b_probs[i] * avb_probs[4 * a_value + i] * bvc_probs[4 * i + c_value]
+        likelihood_numerator_b.append(numerator)
+
+    # Divide all values by the sum of the list
+    sum_b = sum(likelihood_numerator_b)
+    max_index = -1
+    max_value = -1
+    for i in range(len(likelihood_numerator_b)):
+        likelihood = likelihood_numerator_b[i] / sum_b
+        # Choose index of max value as new A-value
+        if likelihood > max_value:
+            max_value = likelihood
+            max_index = i
+
+    return a_value, max_index, c_value, 0, initial_state[4], 2
+
+def __calculate_C_posterior__(bayes_net, initial_state):
+    # Get relevant values for calculation
+    c_probs = bayes_net.get_cpds("C").values
+    b_value = initial_state[1]
+    a_value = initial_state[0]
+    bvc_probs = bayes_net.get_cpds("AvB").values[initial_state[4]]
+    cva_probs = bayes_net.get_cpds("CvA").values[2]
+
+    likelihood_numerator_c = []
+    # Find numerator for posterior calculation
+    for i in range(len(c_probs)):
+        numerator = c_probs[i] * bvc_probs[4 * b_value + i] * cva_probs[4 * i + a_value]
+        likelihood_numerator_c.append(numerator)
+
+    # Divide all values by the sum of the list
+    sum_c = sum(likelihood_numerator_c)
+    max_index = -1
+    max_value = -1
+    for i in range(len(likelihood_numerator_c)):
+        likelihood = likelihood_numerator_c[i] / sum_c
+        # Choose index of max value as new A-value
+        if likelihood > max_value:
+            max_value = likelihood
+            max_index = i
+
+    return a_value, b_value, max_index, 0, initial_state[4], 2
 
 
 def MH_sampler(bayes_net, initial_state):
