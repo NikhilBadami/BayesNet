@@ -134,7 +134,6 @@ def calculate_posterior(bayes_net):
     Return a list of probabilities corresponding to win, loss and tie likelihood."""
     solver = VariableElimination(bayes_net)
     posterior = solver.query(variables=["BvC"], evidence={"AvB": 0, "CvA": 2}, joint=False)
-    print("values: ", posterior["BvC"].values)
     return posterior["BvC"].values
 
 
@@ -186,17 +185,16 @@ def __calculate_bvc_posterior__(bayes_net, initial_state):
 
     numerators = []
     for i in range(3):
-        numerator = bvc_probs[b_value][c_value][i]
+        numerator = bvc_probs[i][b_value][c_value]
         numerators.append(numerator)
 
-    max_index = -1
-    max_value = -1
-    for i in range(len(numerators)):
-        if numerators[i] > max_value:
-            max_value = numerators[i]
-            max_index = i
+    # normalize numerators
+    sum_bvc = sum(numerators)
+    likelihoods = np.array(numerators) / sum_bvc
+    # Randomly select the new value based on the given distribution
+    new_bvc = np.random.choice([0, 1, 2], p=likelihoods)
 
-    return initial_state[0], b_value, c_value, 0, max_index, 2
+    return initial_state[0], b_value, c_value, 0, new_bvc, 2
 
 
 def __calculate_A_posterior__(bayes_net, initial_state):
@@ -213,18 +211,13 @@ def __calculate_A_posterior__(bayes_net, initial_state):
         numerator = a_probs[i] * avb_probs[i][b_value] * cva_probs[c_value][i]
         likelihood_numerator_a.append(numerator)
 
-    # Divide all values by the sum of the list
+    # normalize numerators
     sum_a = sum(likelihood_numerator_a)
-    max_index = -1
-    max_value = -1
-    for i in range(len(likelihood_numerator_a)):
-        likelihood = likelihood_numerator_a[i] / sum_a
-        # Choose index of max value as new A-value
-        if likelihood > max_value:
-            max_value = likelihood
-            max_index = i
+    likelihoods = np.array(likelihood_numerator_a) / sum_a
+    # Randomly select the new value based on the given distribution
+    new_a = np.random.choice([0, 1, 2, 3], p=likelihoods)
 
-    return max_index, b_value, c_value, 0, initial_state[4], 2
+    return new_a, b_value, c_value, 0, initial_state[4], 2
 
 
 def __calculate_B_posterior__(bayes_net, initial_state):
@@ -241,18 +234,13 @@ def __calculate_B_posterior__(bayes_net, initial_state):
         numerator = b_probs[i] * avb_probs[a_value][i] * bvc_probs[i][c_value]
         likelihood_numerator_b.append(numerator)
 
-    # Divide all values by the sum of the list
+    # normalize numerators
     sum_b = sum(likelihood_numerator_b)
-    max_index = -1
-    max_value = -1
-    for i in range(len(likelihood_numerator_b)):
-        likelihood = likelihood_numerator_b[i] / sum_b
-        # Choose index of max value as new A-value
-        if likelihood > max_value:
-            max_value = likelihood
-            max_index = i
+    likelihoods = np.array(likelihood_numerator_b) / sum_b
+    # Randomly select the new value based on the given distribution
+    new_b = np.random.choice([0, 1, 2, 3], p=likelihoods)
 
-    return a_value, max_index, c_value, 0, initial_state[4], 2
+    return a_value, new_b, c_value, 0, initial_state[4], 2
 
 def __calculate_C_posterior__(bayes_net, initial_state):
     # Get relevant values for calculation
@@ -268,18 +256,13 @@ def __calculate_C_posterior__(bayes_net, initial_state):
         numerator = c_probs[i] * bvc_probs[b_value][i] * cva_probs[i][a_value]
         likelihood_numerator_c.append(numerator)
 
-    # Divide all values by the sum of the list
+    # normalize numerators
     sum_c = sum(likelihood_numerator_c)
-    max_index = -1
-    max_value = -1
-    for i in range(len(likelihood_numerator_c)):
-        likelihood = likelihood_numerator_c[i] / sum_c
-        # Choose index of max value as new A-value
-        if likelihood > max_value:
-            max_value = likelihood
-            max_index = i
+    likelihoods = np.array(likelihood_numerator_c) / sum_c
+    # Randomly select the new value based on the given distribution
+    new_c = np.random.choice([0, 1, 2, 3], p=likelihoods)
 
-    return a_value, b_value, max_index, 0, initial_state[4], 2
+    return a_value, b_value, new_c, 0, initial_state[4], 2
 
 
 def MH_sampler(bayes_net, initial_state):
@@ -306,18 +289,16 @@ def compare_sampling(bayes_net, initial_state):
     MH_rejection_count = 0
     Gibbs_convergence = [0,0,0] # posterior distribution of the BvC match as produced by Gibbs 
     MH_convergence = [0,0,0] # posterior distribution of the BvC match as produced by MH
-    N = 10
-    delta = 0.001
+    N = 100
+    delta = 0.0000001
 
     # Calculate Gibbs
     cur_dist = np.array([0, 0, 0])
     prev_dist = np.array([0, 0, 0])
     current_state = initial_state
     convergence_counter = 0
-    for i in range(100):
-        print("\ncurrent state: ", current_state)
+    for i in range(1000000):
         new_state = Gibbs_sampler(bayes_net, current_state)
-        print("new state: ", new_state)
         current_state = new_state
         cur_dist[new_state[4]] += 1
 
@@ -330,14 +311,12 @@ def compare_sampling(bayes_net, initial_state):
         if diff <= delta:
             convergence_counter += 1
             if convergence_counter == N:
-                print("count: ", Gibbs_count)
                 break
         else:
             convergence_counter = 0
         prev_dist = np.copy(cur_dist)
         Gibbs_count += 1
     Gibbs_convergence = cur_dist / np.sum(cur_dist)
-    print("convergence: ", Gibbs_convergence)
 
     return Gibbs_convergence, MH_convergence, Gibbs_count, MH_count, MH_rejection_count
 
