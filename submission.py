@@ -10,6 +10,7 @@ from pgmpy.models import BayesianModel
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.inference import VariableElimination
 import random
+import numpy as np
 #You are not allowed to use following set of modules from 'pgmpy' Library.
 #
 # pgmpy.sampling.*
@@ -133,6 +134,7 @@ def calculate_posterior(bayes_net):
     Return a list of probabilities corresponding to win, loss and tie likelihood."""
     solver = VariableElimination(bayes_net)
     posterior = solver.query(variables=["BvC"], evidence={"AvB": 0, "CvA": 2}, joint=False)
+    print("values: ", posterior["BvC"].values)
     return posterior["BvC"].values
 
 
@@ -159,10 +161,10 @@ def Gibbs_sampler(bayes_net, initial_state):
         return initial_state
 
     # pick variable to sample
-    sample_idx = random.randint(0, 5)
-    if sample_idx == 3 or sample_idx == 5:
-        while sample_idx != 3 and sample_idx != 5:
-            sample_idx = random.randint(0, 6)
+    sample_idx = random.randint(0, 4)
+    if sample_idx == 3:
+        while sample_idx == 3:
+            sample_idx = random.randint(0, 4)
 
     # Sample the chosen variable
     sample = None
@@ -184,15 +186,14 @@ def __calculate_bvc_posterior__(bayes_net, initial_state):
 
     numerators = []
     for i in range(3):
-        numerator = bvc_probs[4 * b_value + c_value][i]
-        numerator.append(numerator)
+        numerator = bvc_probs[b_value][c_value][i]
+        numerators.append(numerator)
 
-    sums = sum(numerators)
     max_index = -1
     max_value = -1
-    for i in range(len(sums)):
-        if sums[i] > max_value:
-            max_value = sums[i]
+    for i in range(len(numerators)):
+        if numerators[i] > max_value:
+            max_value = numerators[i]
             max_index = i
 
     return initial_state[0], b_value, c_value, 0, max_index, 2
@@ -209,7 +210,7 @@ def __calculate_A_posterior__(bayes_net, initial_state):
     likelihood_numerator_a = []
     # Find numerator for posterior calculation
     for i in range(len(a_probs)):
-        numerator = a_probs[i] * avb_probs[4 * i + b_value] * cva_probs[4 * c_value + i]
+        numerator = a_probs[i] * avb_probs[i][b_value] * cva_probs[c_value][i]
         likelihood_numerator_a.append(numerator)
 
     # Divide all values by the sum of the list
@@ -237,7 +238,7 @@ def __calculate_B_posterior__(bayes_net, initial_state):
     likelihood_numerator_b = []
     # Find numerator for posterior calculation
     for i in range(len(b_probs)):
-        numerator = b_probs[i] * avb_probs[4 * a_value + i] * bvc_probs[4 * i + c_value]
+        numerator = b_probs[i] * avb_probs[a_value][i] * bvc_probs[i][c_value]
         likelihood_numerator_b.append(numerator)
 
     # Divide all values by the sum of the list
@@ -264,7 +265,7 @@ def __calculate_C_posterior__(bayes_net, initial_state):
     likelihood_numerator_c = []
     # Find numerator for posterior calculation
     for i in range(len(c_probs)):
-        numerator = c_probs[i] * bvc_probs[4 * b_value + i] * cva_probs[4 * i + a_value]
+        numerator = c_probs[i] * bvc_probs[b_value][i] * cva_probs[i][a_value]
         likelihood_numerator_c.append(numerator)
 
     # Divide all values by the sum of the list
@@ -305,8 +306,39 @@ def compare_sampling(bayes_net, initial_state):
     MH_rejection_count = 0
     Gibbs_convergence = [0,0,0] # posterior distribution of the BvC match as produced by Gibbs 
     MH_convergence = [0,0,0] # posterior distribution of the BvC match as produced by MH
-    # TODO: finish this function
-    raise NotImplementedError        
+    N = 10
+    delta = 0.001
+
+    # Calculate Gibbs
+    cur_dist = np.array([0, 0, 0])
+    prev_dist = np.array([0, 0, 0])
+    current_state = initial_state
+    convergence_counter = 0
+    for i in range(100):
+        print("\ncurrent state: ", current_state)
+        new_state = Gibbs_sampler(bayes_net, current_state)
+        print("new state: ", new_state)
+        current_state = new_state
+        cur_dist[new_state[4]] += 1
+
+        # Normalize cur and prev dists to get probabilities
+        cur_normal = cur_dist / np.sum(cur_dist)
+        prev_normal = prev_dist
+        if np.sum(prev_dist) != 0:
+            prev_normal = prev_dist / np.sum(prev_dist)
+        diff = np.average(np.absolute(cur_normal - prev_normal))
+        if diff <= delta:
+            convergence_counter += 1
+            if convergence_counter == N:
+                print("count: ", Gibbs_count)
+                break
+        else:
+            convergence_counter = 0
+        prev_dist = np.copy(cur_dist)
+        Gibbs_count += 1
+    Gibbs_convergence = cur_dist / np.sum(cur_dist)
+    print("convergence: ", Gibbs_convergence)
+
     return Gibbs_convergence, MH_convergence, Gibbs_count, MH_count, MH_rejection_count
 
 
