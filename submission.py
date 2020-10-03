@@ -334,13 +334,10 @@ def compare_sampling(bayes_net, initial_state):
     Gibbs_count = 0
     MH_count = 0
     MH_rejection_count = 0
-    # TODO remove
-    Gibbs_convergence = [0,0,0]
     N = 100
     delta = 0.0000001
 
     # Calculate Gibbs
-    """
     cur_dist = np.array([0, 0, 0])
     prev_dist = np.array([0, 0, 0])
     current_state = initial_state
@@ -366,11 +363,8 @@ def compare_sampling(bayes_net, initial_state):
         prev_dist = np.copy(cur_dist)
         Gibbs_count += 1
     Gibbs_convergence = cur_dist / np.sum(cur_dist)
-    """
 
     # Calculate MH
-    N = 100
-    delta = 0.00001
     cur_dist = np.array([0, 0, 0])
     prev_dist = np.array([0, 0, 0])
     current_state = initial_state
@@ -403,11 +397,17 @@ def compare_sampling(bayes_net, initial_state):
 
 def sampling_question():
     """Question about sampling performance."""
-    # TODO: assign value to choice and factor
-    raise NotImplementedError
+    _, _, Gibbs_count, MH_count, MH_rejection_count = compare_sampling(get_game_network(), [])
+    # Find faster converging algorithm
     choice = 2
-    options = ['Gibbs','Metropolis-Hastings']
     factor = 0
+    if Gibbs_count < MH_count:
+        choice = 0
+        factor = MH_count / Gibbs_count
+    else:
+        choice = 1
+        factor = Gibbs_count / MH_count
+    options = ['Gibbs', 'Metropolis-Hastings']
     return options[choice], factor
 
 
