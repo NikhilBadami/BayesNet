@@ -285,10 +285,10 @@ def MH_sampler(bayes_net, initial_state):
         return initial_state
 
     # Generate random walk
-    new_a = __calculate_A_posterior__(bayes_net, initial_state)[0]
-    new_b = __calculate_B_posterior__(bayes_net, initial_state)[1]
-    new_c = __calculate_C_posterior__(bayes_net, initial_state)[2]
-    new_bvc = __calculate_bvc_posterior__(bayes_net, initial_state)[4]
+    new_a = random.randint(0, 3)
+    new_b = random.randint(0, 3)
+    new_c = random.randint(0, 3)
+    new_bvc = random.randint(0, 2)
     candidate = (new_a, new_b, new_c, 0, new_bvc, 2)
 
     # Get cpds
@@ -335,7 +335,7 @@ def compare_sampling(bayes_net, initial_state):
     MH_count = 0
     MH_rejection_count = 0
     N = 100
-    delta = 0.0000001
+    delta = 0.000001
 
     # Calculate Gibbs
     cur_dist = np.array([0, 0, 0])
