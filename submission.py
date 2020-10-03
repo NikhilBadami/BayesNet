@@ -272,13 +272,60 @@ def MH_sampler(bayes_net, initial_state):
     index 3-5: represent results of matches AvB, BvC, CvA (values lie in [0,2] inclusive)    
     Returns the new state sampled from the probability distribution as a tuple of length 6. 
     """
-    A_cpd = bayes_net.get_cpds("A")      
-    AvB_cpd = bayes_net.get_cpds("AvB")
-    match_table = AvB_cpd.values
-    team_table = A_cpd.values
-    sample = tuple(initial_state)    
-    # TODO: finish this function
-    raise NotImplementedError    
+
+    if initial_state is None or len(initial_state) == 0:
+        initial_state = (
+            random.randint(0, 3),
+            random.randint(0, 3),
+            random.randint(0, 3),
+            0,
+            random.randint(0, 2),
+            2
+        )
+        return initial_state
+
+    # Generate random walk
+    new_a = __calculate_A_posterior__(bayes_net, initial_state)[0]
+    new_b = __calculate_B_posterior__(bayes_net, initial_state)[1]
+    new_c = __calculate_C_posterior__(bayes_net, initial_state)[2]
+    new_bvc = __calculate_bvc_posterior__(bayes_net, initial_state)[4]
+    candidate = (new_a, new_b, new_c, 0, new_bvc, 2)
+
+    # Get cpds
+    a_prob = bayes_net.get_cpds("A").values
+    b_prob = bayes_net.get_cpds("B").values
+    c_prob = bayes_net.get_cpds("C").values
+    avb_prob = bayes_net.get_cpds("AvB").values
+    bvc_prob = bayes_net.get_cpds("BvC").values
+    cva_prob = bayes_net.get_cpds("CvA").values
+
+    # Calculate likelihood of candidate
+    p_a = a_prob[new_a]
+    p_b = b_prob[new_b]
+    p_c = c_prob[new_c]
+    p_avb = avb_prob[0][new_a][new_b]
+    p_bvc = bvc_prob[new_bvc][new_b][new_c]
+    p_cva = cva_prob[2][new_c][new_a]
+
+    p_cand = p_a * p_b * p_c * p_avb * p_bvc * p_cva
+
+    # Calculate the likelihood of the initial state
+    p_a = a_prob[initial_state[0]]
+    p_b = b_prob[initial_state[1]]
+    p_c = c_prob[initial_state[2]]
+    p_avb = avb_prob[0][initial_state[0]][initial_state[1]]
+    p_bvc = bvc_prob[initial_state[4]][initial_state[1]][initial_state[2]]
+    p_cva = cva_prob[2][initial_state[2]][initial_state[0]]
+
+    p_initial = p_a * p_b * p_c * p_avb * p_bvc * p_cva
+
+    # Accept or reject candidate
+    alpha = min(1, p_cand / p_initial)
+    acceptance_criterion = random.uniform(0, 1)
+    if acceptance_criterion < alpha:
+        sample = candidate
+    else:
+        sample = initial_state
     return sample
 
 
@@ -287,12 +334,13 @@ def compare_sampling(bayes_net, initial_state):
     Gibbs_count = 0
     MH_count = 0
     MH_rejection_count = 0
-    Gibbs_convergence = [0,0,0] # posterior distribution of the BvC match as produced by Gibbs 
-    MH_convergence = [0,0,0] # posterior distribution of the BvC match as produced by MH
+    # TODO remove
+    Gibbs_convergence = [0,0,0]
     N = 100
     delta = 0.0000001
 
     # Calculate Gibbs
+    """
     cur_dist = np.array([0, 0, 0])
     prev_dist = np.array([0, 0, 0])
     current_state = initial_state
@@ -311,12 +359,44 @@ def compare_sampling(bayes_net, initial_state):
         if diff <= delta:
             convergence_counter += 1
             if convergence_counter == N:
+                Gibbs_count += 1
                 break
         else:
             convergence_counter = 0
         prev_dist = np.copy(cur_dist)
         Gibbs_count += 1
     Gibbs_convergence = cur_dist / np.sum(cur_dist)
+    """
+
+    # Calculate MH
+    N = 100
+    delta = 0.00001
+    cur_dist = np.array([0, 0, 0])
+    prev_dist = np.array([0, 0, 0])
+    current_state = initial_state
+    convergence_counter = 0
+    for i in range(1000000):
+        candidate = MH_sampler(bayes_net, current_state)
+        if candidate == current_state:
+            MH_rejection_count += 1
+        cur_dist[candidate[4]] += 1
+        current_state = candidate
+        # Normalize cur and prev dists to get probabilities
+        cur_normal = cur_dist / np.sum(cur_dist)
+        prev_normal = prev_dist
+        if np.sum(prev_dist) != 0:
+            prev_normal = prev_dist / np.sum(prev_dist)
+        diff = np.average(np.absolute(cur_normal - prev_normal))
+        if diff <= delta:
+            convergence_counter += 1
+            if convergence_counter == N:
+                MH_count += 1
+                break
+        else:
+            convergence_counter = 0
+        prev_dist = np.copy(cur_dist)
+        MH_count += 1
+    MH_convergence = cur_dist / np.sum(cur_dist)
 
     return Gibbs_convergence, MH_convergence, Gibbs_count, MH_count, MH_rejection_count
 
