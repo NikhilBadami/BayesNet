@@ -80,7 +80,7 @@ def get_temperature_prob(bayes_net):
     alarm sounds and neither the gauge
     nor alarm is faulty."""
     solver = VariableElimination(bayes_net)
-    temperature_prob = solver.query(variables=["temperature"], evidence={"alarm": 1, "faulty alarm": 1, "faulty gauge": 1}, joint=False)
+    temperature_prob = solver.query(variables=["temperature"], evidence={"alarm": 1, "faulty alarm": 0, "faulty gauge": 0}, joint=False)
     return temperature_prob["temperature"].values[1]
 
 
