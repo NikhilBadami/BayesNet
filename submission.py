@@ -47,8 +47,8 @@ def set_probability(bayes_net):
     cpd_t = TabularCPD("temperature", 2, values=[[0.8], [0.2]])
     cpd_fa = TabularCPD("faulty alarm", 2, values=[[0.85], [0.15]])
     cpd_fg = TabularCPD("faulty gauge", 2, values=[[0.95, 0.2], [0.05, 0.8]], evidence=["temperature"], evidence_card=[2])
-    cpd_g = TabularCPD("gauge", 2, values=[[0.8, 0.05, 0.8, 0.05], [0.2, 0.95, 0.2, 0.95]], evidence=["temperature", "faulty gauge"], evidence_card=[2, 2])
-    cpd_a = TabularCPD("alarm", 2, values=[[0.45, 0.1, 0.45, 0.1], [0.55, 0.9, 0.55, 0.9]], evidence=["gauge", "faulty alarm"], evidence_card=[2, 2])
+    cpd_g = TabularCPD("gauge", 2, values=[[0.95, 0.2, 0.05, 0.8], [0.05, 0.8, 0.95, 0.2]], evidence=["temperature", "faulty gauge"], evidence_card=[2, 2])
+    cpd_a = TabularCPD("alarm", 2, values=[[0.9, 0.55, 0.1, 0.45], [0.1, 0.45, 0.9, 0.55]], evidence=["gauge", "faulty alarm"], evidence_card=[2, 2])
     bayes_net.add_cpds(cpd_t, cpd_fa, cpd_fg, cpd_g, cpd_a)
     return bayes_net
 
