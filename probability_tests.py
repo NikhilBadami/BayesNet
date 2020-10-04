@@ -1,5 +1,8 @@
 import unittest
 from submission import *
+
+# TODO remove
+import numpy as np
 """
 Contains various local tests for Assignment 3.
 """
@@ -134,6 +137,22 @@ class ProbabilityTests(unittest.TestCase):
         posterior = calculate_posterior(get_game_network())
 
         self.assertTrue(abs(posterior[0]-0.25)<0.01 and abs(posterior[1]-0.42)<0.01 and abs(posterior[2]-0.31)<0.01, msg='Incorrect posterior calculated')
+
+    def test_convergence(self):
+        network = get_game_network()
+        posterior = calculate_posterior(network)
+        print("posterior: ", posterior)
+        posterior_n = np.array(posterior)
+        for i in range(1):
+            a = compare_sampling(network, [])
+            gibbs = np.array(a[0])
+            mh = np.array(a[1])
+            print("Mh: ", mh)
+            margin_of_error = abs(posterior_n - mh) / posterior_n
+            print("error mh: ", margin_of_error)
+            print("\ngibbs: ", gibbs)
+            margin_of_error = abs(posterior_n - gibbs) / posterior_n
+            print("error gibbs: ", margin_of_error)
 
 if __name__ == '__main__':
     unittest.main()
